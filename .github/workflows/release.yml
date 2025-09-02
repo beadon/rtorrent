@@ -1,0 +1,204 @@
+name: release
+
+on:
+    push:
+      tags:
+        - 'v*.*.*'
+
+env:
+  APP_NAME: 'rtorrent'
+  MAINTAINER: 'beadon'
+  DESC: 'A ncurses-based command line torrent client for high performance.'
+  VERSION: ${{ github.ref_name }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  BASE_PREFIX: ".debpkg/"
+  CXXFLAGS: '-O3'
+
+jobs:
+  build-linux-packages:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Set prefix
+        run: |
+            export RUNNER_TEMP="${{ runner.temp }}"
+            echo "PREFIX=$RUNNER_TEMP/$BASE_PREFIX" >> $GITHUB_ENV
+
+      - name: Update to latest packages
+        run: |
+            sudo apt-get update
+       
+      - name: Install Dependencies
+        run: |
+         # Skip installing pacakge docs {makes the man-db trigger much faster) 
+         # (I disabled `/doc` and `/info` too, just in case.)
+         sudo tee /etc/dpkg/dpkg.cfg.d/01_nodoc > /dev/null << 'EOF'
+         path-exclude /usr/share/doc/*
+         path-exclude /usr/share/man/*
+         path-exclude /usr/share/info/*
+         EOF
+         sudo apt-get install --no-install-recommends -y \
+           libcurl4-openssl-dev
+
+# THIS IS THE DUMB WAY
+#      - name: Fetch libtorrent
+#        run: |
+#         git clone --branch $VERSION https://github.com/beadon/libtorrent
+
+    ## Fetch the libtorrent repo
+      - uses: actions/checkout@v5
+        with:
+          repository : beadon/libtorrent
+          ref: ${{ github.ref_name }}
+          fetch-depth: 1
+
+      - name: Create package build directory
+        run: |
+         mkdir -v -p $PREFIX
+        
+      # Only build if the deb package is not available from the release version
+      ##  Alternate build concept:  ./configure --prefix=$(pwd)/$PREFIX
+      - name: Build libtorrent
+        run: |
+          autoreconf -ivf
+          ./configure
+          export CORES=`nproc --all`
+          export BUILD_THREADS=`expr $CORES - 1`
+          echo "Building with $BUILD_THREADS threads in make"
+          make -j$BUILD_THREADS
+
+      - name: Finish libtorrent install to package build directory + system
+        run: |
+          make install DESTDIR=$PREFIX
+          sudo make install
+
+    ## Fetch the current repo
+      - uses: actions/checkout@v5
+        with:
+          repository : ${{ github.repository }}
+          ref: ''
+          fetch-depth: 1
+
+    ##  Alternate build concept:  ./configure --prefix=$(pwd)/$PREFIX
+      - name: Configure Project
+        run: |
+         autoreconf -ivf
+         ./configure
+         export CORES=`nproc --all`
+         export BUILD_THREADS=`expr $CORES - 1`
+         echo "Building with $BUILD_THREADS threads in make"
+         make -j$BUILD_THREADS
+
+      - name: Finish rtorrent install to package build directory
+        run: |
+          make install DESTDIR=$PREFIX
+
+      - name: Move things to where the next tool can access
+        run: |
+          mv -v $PREFIX $BASE_PREFIX
+
+      # Secret Sauce
+      - uses: jiro4989/build-deb-action@v4
+        with:
+          package: ${{ env.APP_NAME }}
+          package_root: ${{ env.BASE_PREFIX }}
+          maintainer: ${{ env.MAINTAINER }}
+          version: ${{ github.ref }} # refs/tags/v*.*.*
+          arch: 'amd64' # optional
+          depends: 'git, libtoolize, aclocal, autoconf, autoheader, automake, bear, clang-tidy, libcurl4-openssl-dev' # optional, NOTE: this does not install the dependencies
+          pre_depends: 'libc6 (>= 2.2.1)' # optional
+          desc: ${{ env.DESC }} # optional
+          homepage: 'https://github.com/beadon/rtorrent' # optional
+          section: 'unknown'   # optional
+          priority: 'required' # optional
+        id: build
+
+      # Check a created deb file
+      - name: Check a path of deb file
+        run: ls ${{ steps.build.outputs.file_name }}
+
+      - name: Release with Notes
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ./*.deb
+
+## -- example for building the current repo
+    # steps:
+    # - name: Update Packages
+    #   run: |
+    #     sudo apt-get update
+    # - name: Install Dependencies
+    #   run: |
+    #     sudo apt-get install -y \
+    #       bear \
+    #       clang-tidy \
+    #       libcurl4-openssl-dev
+    # - name: Fetch libtorrent
+    #   run: |
+    #     git clone https://github.com/rakshasa/libtorrent
+    # - name: Build libtorrent
+    #   run: |
+    #     cd libtorrent
+    #     libtoolize
+    #     aclocal -I scripts
+    #     autoconf -i
+    #     autoheader
+    #     automake --add-missing
+    #     ./configure
+    #     make
+    #     sudo make install
+    #     cd ..
+    #     rm -rf libtorrent
+
+##    ----
+    # - uses: actions/checkout@v4
+    #   with:
+    #     ref: ${{ github.event.pull_request.head.sha }}
+    #     fetch-depth: 0
+    # - name: Fetch base branch
+    #   run: |
+    #     git remote add upstream "https://github.com/${{ github.event.pull_request.base.repo.full_name }}"
+    #     git fetch --no-tags --no-recurse-submodules upstream "${{ github.event.pull_request.base.ref }}"
+    # - name: Configure Project
+    #   run: |
+    #     libtoolize
+    #     aclocal -I scripts
+    #     autoconf -i
+    #     autoheader
+    #     automake --add-missing
+    #     ./configure
+
+##---
+    # - name: Prepare compile_commands.json
+    #   run: |
+    #     bear -- make
+    # - name: Create results directory
+    #   run: |
+    #     mkdir clang-tidy-result
+    # - name: Analyze
+    #   run: |
+    #     git diff -U0 "$(git merge-base HEAD "upstream/${{ github.event.pull_request.base.ref }}")" | clang-tidy-diff -p1 -path build -export-fixes clang-tidy-result/fixes.yml "-extra-arg=-include/${PWD}/config.h"
+    # - name: Save PR metadata
+    #   run: |
+    #     echo "${{ github.event.number }}" > clang-tidy-result/pr-id.txt
+    #     echo "${{ github.event.pull_request.head.repo.full_name }}" > clang-tidy-result/pr-head-repo.txt
+    #     echo "${{ github.event.pull_request.head.sha }}" > clang-tidy-result/pr-head-sha.txt
+    # - uses: actions/upload-artifact@v4
+    #   with:
+    #     name: clang-tidy-result
+    #     path: clang-tidy-result/
+    # # - name: Run clang-tidy-pr-comments action
+    # #   uses: platisd/clang-tidy-pr-comments@v1
+    # #   with:
+    # #     # The GitHub token (or a personal access token)
+    # #     github_token: ${{ secrets.GITHUB_TOKEN }}
+    # #     # The path to the clang-tidy fixes generated previously
+    # #     clang_tidy_fixes: clang-tidy-result/fixes.yml
+    # #     # Optionally set to true if you want the Action to request
+    # #     # changes in case warnings are found
+    # #     request_changes: true
+    # #     # Optionally set the number of comments per review
+    # #     # to avoid GitHub API timeouts for heavily loaded
+    # #     # pull requests
+    # #     suggestions_per_comment: 10
