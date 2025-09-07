@@ -70,8 +70,8 @@ jobs:
 
       - name: Configure Project
         run: |
-         autoreconf -ivf
          export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/$PREFIX/usr/local/lib"
+         autoreconf -ivf
          ./configure --prefix=$(pwd)/$PREFIX
          export CORES=`nproc --all`
          export BUILD_THREADS=`expr $CORES - 1`
