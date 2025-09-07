@@ -54,7 +54,7 @@ jobs:
       - name: Build libtorrent
         run: |
           autoreconf -ivf
-          ./configure --prefix=$PREFIX
+          ./configure --prefix=$(pwd)/$PREFIX
           export CORES=`nproc --all`
           export BUILD_THREADS=`expr $CORES - 1`
           echo "Building with $BUILD_THREADS threads in make"
@@ -71,7 +71,7 @@ jobs:
       - name: Configure Project
         run: |
          autoreconf -ivf
-         ./configure --prefix=$PREFIX
+         ./configure --prefix=$(pwd)/$PREFIX
          export CORES=`nproc --all`
          export BUILD_THREADS=`expr $CORES - 1`
          echo "Building with $BUILD_THREADS threads in make"
