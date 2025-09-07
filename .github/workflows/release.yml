@@ -9,6 +9,7 @@ env:
   APP_NAME: 'rtorrent'
   MAINTAINER: 'beadon'
   DESC: 'A ncurses-based command line torrent client for high performance.'
+  VERSION: ${{ github.ref }}
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
@@ -32,7 +33,7 @@ jobs:
           maintainer: ${{ env.MAINTAINER }}
           version: ${{ github.ref }} # refs/tags/v*.*.*
           arch: 'amd64' # optional
-          depends: 'git, jq, libtoolize, aclocal, autoconf, autoheader, automake' # optional
+          depends: 'git, jq, libtoolize, aclocal, autoconf, autoheader, automake, bear, clang-tidy, libcurl4-openssl-dev' # optional
           pre_depends: 'libc6 (>= 2.2.1)' # optional
           desc: ${{ env.DESC }} # optional
           homepage: 'https://github.com/beadon/rtorrent' # optional
@@ -40,30 +41,32 @@ jobs:
           priority: 'required' # optional
         id: build
 
+     - name: Fetch libtorrent
+       run: |
+         git clone --branch $VERSION https://github.com/beadon/libtorrent
+     - name: Build libtorrent
+       run: |
+         cd libtorrent
+         libtoolize
+         aclocal -I scripts
+         autoconf -i
+         autoheader
+         automake --add-missing
+         ./configure
+         make
+         sudo make install
+         cd ..
+         rm -rf libtorrent
+
       # Check a created deb file
       - name: Check a path of deb file
         run: ls ${{ steps.build.outputs.file_name }}
-
-# -- when package is built, this is an example of uploading it to the tagged release.
-#      - uses: actions/upload-artifact@v4
-#        with:
-#          name: artifact-deb
-#          path: |
-#            ./*.deb
 
       - name: Release with Notes
         uses: softprops/action-gh-release@v2
         with:
           files: |
             ./*.deb
-
-## -- second example ?
-#      - name: Upload .deb package
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: debian-package
-#          path: "*.deb" # This assumes the .deb file is generated in the root directory
-
 
 ## -- example for building the current repo
     # steps:
