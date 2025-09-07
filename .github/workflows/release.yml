@@ -33,7 +33,7 @@ jobs:
           arch: 'amd64' # optional
           depends: 'git, jq, libtoolize, aclocal, autoconf, autoheader, automake' # optional
           pre_depends: 'libc6 (>= 2.2.1)' # optional
-          desc: ${{ DESC }} # optional
+          desc: ${{ env.DESC }} # optional
           homepage: 'https://github.com/beadon/rtorrent' # optional
           section: 'unknown'   # optional
           priority: 'required' # optional
