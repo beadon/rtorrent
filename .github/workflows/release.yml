@@ -48,7 +48,7 @@ jobs:
        
       - name: Install Dependencies
         run: |
-         sudo apt-get install -y \
+         sudo apt-get install --no-install-recommends -y \
            bear \
            clang-tidy \
            libcurl4-openssl-dev
@@ -69,6 +69,7 @@ jobs:
           ./configure
           export CORES=`nproc --all`
           export BUILD_THREADS=`expr $CORES - 1`
+          echo "Building with $BUILD_THREADS threads in make"
           make -j$BUILD_THREADS
           sudo make install
           cd ..
