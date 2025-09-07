@@ -53,7 +53,6 @@ jobs:
       # Only build if the deb package is not available from the release version
       - name: Build libtorrent
         run: |
-          cd libtorrent
           autoreconf -ivf
           ./configure --prefix=$PREFIX
           export CORES=`nproc --all`
@@ -61,8 +60,6 @@ jobs:
           echo "Building with $BUILD_THREADS threads in make"
           make -j$BUILD_THREADS
           make install
-          cd ..
-          rm -rf libtorrent
 
     ## Fetch the current repo
       - uses: actions/checkout@v5
