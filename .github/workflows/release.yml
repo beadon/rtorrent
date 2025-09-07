@@ -17,8 +17,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-
       - name: Update GitHub Action VM packages
         run: |
             sudo apt-get update
@@ -50,15 +48,12 @@ jobs:
           cd ..
           rm -rf libtorrent
 
-      - uses: actions/checkout@v4
+    ## Fetch the current repo
+      - uses: actions/checkout@v5
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          fetch-depth: 0
-        
-      - name: Fetch base branch
-        run: |
-          git remote add upstream "https://github.com/${{ github.event.pull_request.base.repo.full_name }}"
-          git fetch --no-tags --no-recurse-submodules upstream "${{ github.event.pull_request.base.ref }}"
+          repository : ${{ github.repository }}
+          ref: ''
+          fetch-depth: 1
 
       - name: Configure Project
         run: |
@@ -89,7 +84,7 @@ jobs:
           maintainer: ${{ env.MAINTAINER }}
           version: ${{ github.ref }} # refs/tags/v*.*.*
           arch: 'amd64' # optional
-          depends: 'git, jq, libtoolize, aclocal, autoconf, autoheader, automake, bear, clang-tidy, libcurl4-openssl-dev' # optional, NOTE: this does not install the dependencies
+          depends: 'git, libtoolize, aclocal, autoconf, autoheader, automake, bear, clang-tidy, libcurl4-openssl-dev' # optional, NOTE: this does not install the dependencies
           pre_depends: 'libc6 (>= 2.2.1)' # optional
           desc: ${{ env.DESC }} # optional
           homepage: 'https://github.com/beadon/rtorrent' # optional
