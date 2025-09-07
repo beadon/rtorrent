@@ -32,7 +32,7 @@ jobs:
         run: |
          git clone --branch $VERSION https://github.com/beadon/libtorrent
 
-        # Only build if the deb package is not available from the release version
+      # Only build if the deb package is not available from the release version
       - name: Build libtorrent
         run: |
           cd libtorrent
@@ -50,27 +50,28 @@ jobs:
           cd ..
           rm -rf libtorrent
 
-        - uses: actions/checkout@v4
-        with:
-        ref: ${{ github.event.pull_request.head.sha }}
-        fetch-depth: 0
-        - name: Fetch base branch
-          run: |
+      - uses: actions/checkout@v4
+         with:
+         ref: ${{ github.event.pull_request.head.sha }}
+         fetch-depth: 0
+        
+      - name: Fetch base branch
+        run: |
           git remote add upstream "https://github.com/${{ github.event.pull_request.base.repo.full_name }}"
           git fetch --no-tags --no-recurse-submodules upstream "${{ github.event.pull_request.base.ref }}"
 
-        - name: Configure Project
+      - name: Configure Project
         run: |
-        libtoolize
-        aclocal -I scripts
-        autoconf -i
-        autoheader
-        automake --add-missing
-        ./configure
-        export CORES=`nproc --all`
-        export BUILD_THREADS=`expr $CORES - 1`
-        echo "Building with $BUILD_THREADS threads in make"
-        make -j$BUILD_THREADS
+         libtoolize
+         aclocal -I scripts
+         autoconf -i
+         autoheader
+         automake --add-missing
+         ./configure
+         export CORES=`nproc --all`
+         export BUILD_THREADS=`expr $CORES - 1`
+         echo "Building with $BUILD_THREADS threads in make"
+         make -j$BUILD_THREADS
 
       - name: create sample script
         run: |
