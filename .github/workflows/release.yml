@@ -22,7 +22,7 @@ jobs:
       - name: Set prefix
         run: |
             export RUNNER_TEMP="${{ runner.temp }}"
-            export PREFIX="$RUNNER_TEMP/$BASE_PREFIX"
+            echo "PREFIX=$RUNNER_TEMP/$BASE_PREFIX" >> $GITHUB_ENV
 
       - name: Update to latest packages
         run: |
