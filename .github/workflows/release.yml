@@ -11,7 +11,7 @@ env:
   DESC: 'A ncurses-based command line torrent client for high performance.'
   VERSION: ${{ github.ref_name }}
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  PREFIX: "${{ runner.temp }}/.debpkg/"
+  PREFIX: "${{ env.TMPDIR }}/.debpkg/"
   CXXFLAGS: '-O3'
 
 jobs:
