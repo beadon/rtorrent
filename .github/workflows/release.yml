@@ -51,10 +51,11 @@ jobs:
          mkdir -p $PREFIX
         
       # Only build if the deb package is not available from the release version
+      ##  Alternate build concept:  ./configure --prefix=$(pwd)/$PREFIX
       - name: Build libtorrent
         run: |
           autoreconf -ivf
-          ./configure --prefix=$(pwd)/$PREFIX
+          ./configure
           export CORES=`nproc --all`
           export BUILD_THREADS=`expr $CORES - 1`
           echo "Building with $BUILD_THREADS threads in make"
@@ -68,11 +69,11 @@ jobs:
           ref: ''
           fetch-depth: 1
 
+    ##  Alternate build concept:  ./configure --prefix=$(pwd)/$PREFIX
       - name: Configure Project
         run: |
-         export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/$PREFIX/usr/local/lib"
          autoreconf -ivf
-         ./configure --prefix=$(pwd)/$PREFIX
+         ./configure
          export CORES=`nproc --all`
          export BUILD_THREADS=`expr $CORES - 1`
          echo "Building with $BUILD_THREADS threads in make"
@@ -80,7 +81,7 @@ jobs:
 
       - name: Finish install to package build directory
         run: |
-          make install
+          make install DESTDIR=$(pwd)/$PREFIX
 
       # Secret Sauce
       - uses: jiro4989/build-deb-action@v4
