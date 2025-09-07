@@ -33,8 +33,7 @@ jobs:
           maintainer: ${{ env.MAINTAINER }}
           version: ${{ github.ref }} # refs/tags/v*.*.*
           arch: 'amd64' # optional
-          depends: 'git, jq,'
-          #libtoolize, aclocal, autoconf, autoheader, automake, bear, clang-tidy, libcurl4-openssl-dev' # optional
+          depends: 'git, jq, libtoolize, aclocal, autoconf, autoheader, automake, bear, clang-tidy, libcurl4-openssl-dev' # optional
           pre_depends: 'libc6 (>= 2.2.1)' # optional
           desc: ${{ env.DESC }} # optional
           homepage: 'https://github.com/beadon/rtorrent' # optional
@@ -42,23 +41,23 @@ jobs:
           priority: 'required' # optional
         id: build
    
-    - name: Fetch libtorrent
-       run: |
+      - name: Fetch libtorrent
+        run: |
          git clone --branch $VERSION https://github.com/beadon/libtorrent
          
-     - name: Build libtorrent
-       run: |
-         cd libtorrent
-         libtoolize
-         aclocal -I scripts
-         autoconf -i
-         autoheader
-         automake --add-missing
-         ./configure
-         make
-         sudo make install
-         cd ..
-         rm -rf libtorrent
+      - name: Build libtorrent
+        run: |
+          cd libtorrent
+          libtoolize
+          aclocal -I scripts
+          autoconf -i
+          autoheader
+          automake --add-missing
+          ./configure
+          make -j2
+          sudo make install
+          cd ..
+          rm -rf libtorrent
 
       # Check a created deb file
       - name: Check a path of deb file
