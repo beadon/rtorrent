@@ -32,7 +32,7 @@ jobs:
         run: |
          git clone --branch $VERSION https://github.com/beadon/libtorrent
 
-         # Only build if the deb package is not available from the release version
+        # Only build if the deb package is not available from the release version
       - name: Build libtorrent
         run: |
           cd libtorrent
