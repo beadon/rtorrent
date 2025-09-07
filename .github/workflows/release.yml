@@ -13,7 +13,7 @@ env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   PREFIX: ".debpkg/"
   CXXFLAGS: '-O3'
-
+  RUNNER_TEMP: ${{ runner.temp }}
 
 jobs:
   build-linux-packages:
@@ -22,7 +22,7 @@ jobs:
     steps:
       - name: Set prefix
         run: |
-            export PREFIX=$RUNNER_TEMP/$PREFIX
+            export PREFIX="$RUNNER_TEMP/$PREFIX"
 
       - name: Update to latest packages
         run: |
