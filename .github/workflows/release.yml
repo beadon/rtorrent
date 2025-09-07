@@ -11,7 +11,7 @@ env:
   DESC: 'A ncurses-based command line torrent client for high performance.'
   VERSION: ${{ github.ref_name }}
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  PREFIX: '.debpkg/'
+  PREFIX: "${{ runner.temp }}/.debpkg/"
   CXXFLAGS: '-O3'
 
 jobs:
@@ -49,7 +49,7 @@ jobs:
 
       - name: Create package build directory
         run: |
-         mkdir -p $RUNNER_TEMP/$PREFIX
+         mkdir -v -p $PREFIX
         
       # Only build if the deb package is not available from the release version
       ##  Alternate build concept:  ./configure --prefix=$(pwd)/$PREFIX
@@ -64,7 +64,7 @@ jobs:
 
       - name: Finish libtorrent install to package build directory + system
         run: |
-          make install DESTDIR=$RUNNER_TEMP/$PREFIX
+          make install DESTDIR=$PREFIX
           sudo make install
 
     ## Fetch the current repo
@@ -86,7 +86,7 @@ jobs:
 
       - name: Finish rtorrent install to package build directory
         run: |
-          make install DESTDIR=$RUNNER_TEMP/$PREFIX
+          make install DESTDIR=$PREFIX
 
       # Secret Sauce
       - uses: jiro4989/build-deb-action@v4
