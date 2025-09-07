@@ -19,38 +19,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: create sample script
-        run: |
-          mkdir -p .debpkg/usr/bin
-          mkdir -p .debpkg/usr/lib/samplescript
-          echo -e "echo sample" > .debpkg/usr/bin/samplescript
-          chmod +x .debpkg/usr/bin/samplescript
-          echo -e "a=1" > .debpkg/usr/lib/samplescript/samplescript.conf
-
-      - uses: jiro4989/build-deb-action@v4
-        with:
-          package: ${{ env.APP_NAME }}
-          package_root: .debpkg
-          maintainer: ${{ env.MAINTAINER }}
-          version: ${{ github.ref }} # refs/tags/v*.*.*
-          arch: 'amd64' # optional
-          depends: 'git, jq, libtoolize, aclocal, autoconf, autoheader, automake, bear, clang-tidy, libcurl4-openssl-dev' # optional, NOTE: this does not install the dependencies
-          pre_depends: 'libc6 (>= 2.2.1)' # optional
-          desc: ${{ env.DESC }} # optional
-          homepage: 'https://github.com/beadon/rtorrent' # optional
-          section: 'unknown'   # optional
-          priority: 'required' # optional
-        id: build
-
-      - name: Update Packages
+      - name: Update GitHub Action VM packages
         run: |
             sudo apt-get update
        
       - name: Install Dependencies
         run: |
          sudo apt-get install --no-install-recommends -y \
-           bear \
-           clang-tidy \
            libcurl4-openssl-dev
 
       - name: Fetch libtorrent
@@ -74,6 +49,52 @@ jobs:
           sudo make install
           cd ..
           rm -rf libtorrent
+
+        - uses: actions/checkout@v4
+        with:
+        ref: ${{ github.event.pull_request.head.sha }}
+        fetch-depth: 0
+        - name: Fetch base branch
+          run: |
+          git remote add upstream "https://github.com/${{ github.event.pull_request.base.repo.full_name }}"
+          git fetch --no-tags --no-recurse-submodules upstream "${{ github.event.pull_request.base.ref }}"
+
+        - name: Configure Project
+        run: |
+        libtoolize
+        aclocal -I scripts
+        autoconf -i
+        autoheader
+        automake --add-missing
+        ./configure
+        export CORES=`nproc --all`
+        export BUILD_THREADS=`expr $CORES - 1`
+        echo "Building with $BUILD_THREADS threads in make"
+        make -j$BUILD_THREADS
+
+      - name: create sample script
+        run: |
+          mkdir -p .debpkg/usr/bin
+          mkdir -p .debpkg/usr/lib/samplescript
+          echo -e "echo sample" > .debpkg/usr/bin/samplescript
+          chmod +x .debpkg/usr/bin/samplescript
+          echo -e "a=1" > .debpkg/usr/lib/samplescript/samplescript.conf
+
+      # Secret Sauce
+      - uses: jiro4989/build-deb-action@v4
+        with:
+          package: ${{ env.APP_NAME }}
+          package_root: .debpkg
+          maintainer: ${{ env.MAINTAINER }}
+          version: ${{ github.ref }} # refs/tags/v*.*.*
+          arch: 'amd64' # optional
+          depends: 'git, jq, libtoolize, aclocal, autoconf, autoheader, automake, bear, clang-tidy, libcurl4-openssl-dev' # optional, NOTE: this does not install the dependencies
+          pre_depends: 'libc6 (>= 2.2.1)' # optional
+          desc: ${{ env.DESC }} # optional
+          homepage: 'https://github.com/beadon/rtorrent' # optional
+          section: 'unknown'   # optional
+          priority: 'required' # optional
+        id: build
 
       # Check a created deb file
       - name: Check a path of deb file
@@ -112,6 +133,8 @@ jobs:
     #     sudo make install
     #     cd ..
     #     rm -rf libtorrent
+
+##    ----
     # - uses: actions/checkout@v4
     #   with:
     #     ref: ${{ github.event.pull_request.head.sha }}
@@ -128,6 +151,8 @@ jobs:
     #     autoheader
     #     automake --add-missing
     #     ./configure
+
+##---
     # - name: Prepare compile_commands.json
     #   run: |
     #     bear -- make
