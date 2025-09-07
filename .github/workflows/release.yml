@@ -48,7 +48,7 @@ jobs:
 
       - name: Create package build directory
         run: |
-        mkdir -p $PREFIX
+         mkdir -p $PREFIX
         
       # Only build if the deb package is not available from the release version
       - name: Build libtorrent
