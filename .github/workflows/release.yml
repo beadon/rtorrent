@@ -61,6 +61,7 @@ jobs:
           export BUILD_THREADS=`expr $CORES - 1`
           echo "Building with $BUILD_THREADS threads in make"
           make -j$BUILD_THREADS
+          make install DESTDIR=$(pwd)/$PREFIX
           sudo make install
 
     ## Fetch the current repo
