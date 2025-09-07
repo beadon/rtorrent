@@ -20,7 +20,7 @@ jobs:
       - name: create sample script
         run: |
           mkdir -p .debpkg/usr/bin
-          cp -p bin/* .debpkg/usr/bin/
+          mkdir -p .debpkg/usr/lib/samplescript
           echo -e "echo sample" > .debpkg/usr/bin/samplescript
           chmod +x .debpkg/usr/bin/samplescript
           echo -e "a=1" > .debpkg/usr/lib/samplescript/samplescript.conf
