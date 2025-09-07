@@ -11,13 +11,14 @@ env:
   DESC: 'A ncurses-based command line torrent client for high performance.'
   VERSION: ${{ github.ref_name }}
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  PREFIX: '.debpkg/'
 
 jobs:
   build-linux-packages:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Update GitHub Action packages
+      - name: Update to latest packages
         run: |
             sudo apt-get update
        
@@ -33,25 +34,33 @@ jobs:
          sudo apt-get install --no-install-recommends -y \
            libcurl4-openssl-dev
 
-      - name: Fetch libtorrent
-        run: |
-         git clone --branch $VERSION https://github.com/beadon/libtorrent
+# THIS IS THE DUMB WAY
+#      - name: Fetch libtorrent
+#        run: |
+#         git clone --branch $VERSION https://github.com/beadon/libtorrent
 
+    ## Fetch the libtorrent repo
+      - uses: actions/checkout@v5
+        with:
+          repository : beadon/libtorrent
+          ref: ${{ github.ref_name }}
+          fetch-depth: 1
+
+      - name: Create package build directory
+        run: |
+        mkdir -p $PREFIX
+        
       # Only build if the deb package is not available from the release version
       - name: Build libtorrent
         run: |
           cd libtorrent
-          libtoolize
-          aclocal -I scripts
-          autoconf -i
-          autoheader
-          automake --add-missing
-          ./configure
+          autoreconf -ivf
+          ./configure --prefix=$PREFIX
           export CORES=`nproc --all`
           export BUILD_THREADS=`expr $CORES - 1`
           echo "Building with $BUILD_THREADS threads in make"
           make -j$BUILD_THREADS
-          sudo make install
+          make install
           cd ..
           rm -rf libtorrent
 
@@ -64,24 +73,16 @@ jobs:
 
       - name: Configure Project
         run: |
-         libtoolize
-         aclocal -I scripts
-         autoconf -i
-         autoheader
-         automake --add-missing
-         ./configure
+         autoreconf -ivf
+         ./configure --prefix=$PREFIX
          export CORES=`nproc --all`
          export BUILD_THREADS=`expr $CORES - 1`
          echo "Building with $BUILD_THREADS threads in make"
          make -j$BUILD_THREADS
 
-      - name: create sample script
+      - name: Finish install to package build directory
         run: |
-          mkdir -p .debpkg/usr/bin
-          mkdir -p .debpkg/usr/lib/samplescript
-          echo -e "echo sample" > .debpkg/usr/bin/samplescript
-          chmod +x .debpkg/usr/bin/samplescript
-          echo -e "a=1" > .debpkg/usr/lib/samplescript/samplescript.conf
+          make install
 
       # Secret Sauce
       - uses: jiro4989/build-deb-action@v4
