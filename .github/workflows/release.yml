@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: create sample script
         run: |
           mkdir -p .debpkg/usr/bin
@@ -54,7 +54,6 @@ jobs:
 #          version: ${{ github.ref }}
 #          arch: 'amd64'
 #          desc: '${{ env.DESC }}'
-
 
 # -- when package is built, this is an example of uploading it to the tagged release.
 #      - uses: actions/upload-artifact@v4
