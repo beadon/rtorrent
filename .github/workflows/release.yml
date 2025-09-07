@@ -11,7 +11,7 @@ env:
   DESC: 'A ncurses-based command line torrent client for high performance.'
   VERSION: ${{ github.ref_name }}
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  PREFIX: '.debpkg/'
+  PREFIX: "${{ runner.temp }}/.debpkg/"
   CXXFLAGS: '-O3'
 
 jobs:
@@ -61,7 +61,7 @@ jobs:
           export BUILD_THREADS=`expr $CORES - 1`
           echo "Building with $BUILD_THREADS threads in make"
           make -j$BUILD_THREADS
-          make install DESTDIR=$(pwd)/$PREFIX
+          make install DESTDIR=$PREFIX
           sudo make install
 
     ## Fetch the current repo
@@ -69,7 +69,6 @@ jobs:
         with:
           repository : ${{ github.repository }}
           ref: ''
-          exclude_from_clean: ${{ env.PREFIX }}
           fetch-depth: 1
 
     ##  Alternate build concept:  ./configure --prefix=$(pwd)/$PREFIX
@@ -84,7 +83,7 @@ jobs:
 
       - name: Finish install to package build directory
         run: |
-          make install DESTDIR=$(pwd)/$PREFIX
+          make install DESTDIR=$PREFIX
 
       # Secret Sauce
       - uses: jiro4989/build-deb-action@v4
