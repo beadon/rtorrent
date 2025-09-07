@@ -69,6 +69,7 @@ jobs:
         with:
           repository : ${{ github.repository }}
           ref: ''
+          exclude_from_clean: ${{ env.PREFIX }}
           fetch-depth: 1
 
     ##  Alternate build concept:  ./configure --prefix=$(pwd)/$PREFIX
