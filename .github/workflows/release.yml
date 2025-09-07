@@ -21,7 +21,7 @@ jobs:
     steps:
       - name: Set prefix
         run: |
-            export RUNNER_TEMP= ${{ RUNNER_TEMP }}
+            export RUNNER_TEMP= ${{ runner.temp }}
             export PREFIX="$RUNNER_TEMP/$BASE_PREFIX"
 
       - name: Update to latest packages
