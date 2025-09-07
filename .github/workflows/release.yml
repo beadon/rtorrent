@@ -22,8 +22,8 @@ jobs:
     steps:
       - name: Set prefix
         run: |
-        export PREFIX=$RUNNER_TEMP/$PREFIX
-  
+            export PREFIX=$RUNNER_TEMP/$PREFIX
+
       - name: Update to latest packages
         run: |
             sudo apt-get update
