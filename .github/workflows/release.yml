@@ -101,7 +101,7 @@ jobs:
       - uses: jiro4989/build-deb-action@v4
         with:
           package: ${{ env.APP_NAME }}
-          package_root: ${{ env.PREFIX }}
+          package_root: ${{ env.BASE_PREFIX }}
           maintainer: ${{ env.MAINTAINER }}
           version: ${{ github.ref }} # refs/tags/v*.*.*
           arch: 'amd64' # optional
