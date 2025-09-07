@@ -27,25 +27,51 @@ jobs:
 
       - uses: jiro4989/build-deb-action@v4
         with:
-          package: ${{ env.APP_NAME }}
+          package: samplescript
           package_root: .debpkg
-          maintainer: ${{ env.MAINTAINER }}
-          version: ${{ github.ref }}
-          arch: 'amd64'
-          desc: '${{ env.DESC }}'
+          maintainer: beadon
+          version: ${{ github.ref }} # refs/tags/v*.*.*
+          arch: 'amd64' # optional
+          depends: 'git, jq' # optional
+          pre_depends: 'libc6 (>= 2.2.1)' # optional
+          desc: 'this is sample package - HELLO WORLD' # optional
+          homepage: 'https://github.com/jiro4989/build-deb-action' # optional
+          section: 'unknown'   # optional
+          priority: 'required' # optional
+          conflicts: 'hello-traditional' # optional
+        id: build
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: artifact-deb
-          path: |
-            ./*.deb
+      # Check a created deb file
+      - name: Check a path of deb file
+        run: ls ${{ steps.build.outputs.file_name }}
 
-      - name: Upload .deb package
-        uses: actions/upload-artifact@v4
-        with:
-          name: debian-package
-          path: "*.deb" # This assumes the .deb file is generated in the root directory
-    
+# -- use the environment variables to drive the debian package details
+#      - uses: jiro4989/build-deb-action@v4
+#        with:
+#          package: ${{ env.APP_NAME }}
+#          package_root: .debpkg
+#          maintainer: ${{ env.MAINTAINER }}
+#          version: ${{ github.ref }}
+#          arch: 'amd64'
+#          desc: '${{ env.DESC }}'
+
+
+# -- when package is built, this is an example of uploading it to the tagged release.
+#      - uses: actions/upload-artifact@v4
+#        with:
+#          name: artifact-deb
+#          path: |
+#            ./*.deb
+
+## -- second example ?
+#      - name: Upload .deb package
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: debian-package
+#          path: "*.deb" # This assumes the .deb file is generated in the root directory
+
+
+## -- example for building the current repo
     # steps:
     # - name: Update Packages
     #   run: |
