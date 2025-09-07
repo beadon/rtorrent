@@ -9,7 +9,7 @@ env:
   APP_NAME: 'rtorrent'
   MAINTAINER: 'beadon'
   DESC: 'A ncurses-based command line torrent client for high performance.'
-  VERSION: ${{ github.ref }}
+  VERSION: ${{ github.ref_name }}
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
