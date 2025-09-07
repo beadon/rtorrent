@@ -11,14 +11,19 @@ env:
   DESC: 'A ncurses-based command line torrent client for high performance.'
   VERSION: ${{ github.ref_name }}
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  PREFIX: "${{ runner.temp }}/.debpkg/"
+  PREFIX: ".debpkg/"
   CXXFLAGS: '-O3'
+
 
 jobs:
   build-linux-packages:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - name: Set prefix
+        run: |
+        export PREFIX=$RUNNER_TEMP/$PREFIX
+  
       - name: Update to latest packages
         run: |
             sudo apt-get update
