@@ -51,9 +51,9 @@ jobs:
           rm -rf libtorrent
 
       - uses: actions/checkout@v4
-         with:
-         ref: ${{ github.event.pull_request.head.sha }}
-         fetch-depth: 0
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
         
       - name: Fetch base branch
         run: |
