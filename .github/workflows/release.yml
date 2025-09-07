@@ -43,22 +43,12 @@ jobs:
       - name: Check a path of deb file
         run: ls ${{ steps.build.outputs.file_name }}
 
-# -- use the environment variables to drive the debian package details
-#      - uses: jiro4989/build-deb-action@v4
-#        with:
-#          package: ${{ env.APP_NAME }}
-#          package_root: .debpkg
-#          maintainer: ${{ env.MAINTAINER }}
-#          version: ${{ github.ref }}
-#          arch: 'amd64'
-#          desc: '${{ env.DESC }}'
-
 # -- when package is built, this is an example of uploading it to the tagged release.
-#      - uses: actions/upload-artifact@v4
-#        with:
-#          name: artifact-deb
-#          path: |
-#            ./*.deb
+      - uses: actions/upload-artifact@v4
+        with:
+          name: artifact-deb
+          path: |
+            ./*.deb
 
 ## -- second example ?
 #      - name: Upload .deb package
