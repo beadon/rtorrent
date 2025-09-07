@@ -56,7 +56,8 @@ jobs:
       - name: Fetch libtorrent
         run: |
          git clone --branch $VERSION https://github.com/beadon/libtorrent
-         
+
+         # Only build if the deb package is not available from the release version
       - name: Build libtorrent
         run: |
           cd libtorrent
@@ -66,6 +67,8 @@ jobs:
           autoheader
           automake --add-missing
           ./configure
+          export CORES=`nproc --all`
+          export BUILD_THREADS=$(expr $CORES -1)
           make -j2
           sudo make install
           cd ..
