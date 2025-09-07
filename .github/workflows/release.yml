@@ -93,6 +93,10 @@ jobs:
         run: |
           make install DESTDIR=$PREFIX
 
+      - name: Move things to where the next tool can access
+        run: |
+          mv -v $PREFIX $BASE_PREFIX
+
       # Secret Sauce
       - uses: jiro4989/build-deb-action@v4
         with:
