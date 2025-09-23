@@ -73,10 +73,11 @@ jobs:
 #          sudo make install
 
 # Fetch libtorrent
-      - name: Download a single artifact
-        uses: actions/download-artifact@v5
+      - uses: robinraju/release-downloader@v1
         with:
-          name: libtorrent_${{ github.ref_name }}_amd64.deb
+          repository: 'beadon/libtorrent'
+          tag: ${{ github.ref_name }}
+          fileName: libtorrent_${{ github.ref_name }}_amd64.deb
 
       - name: Install libtorrent in build environment
         run: |
