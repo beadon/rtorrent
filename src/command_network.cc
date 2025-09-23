@@ -12,6 +12,7 @@
 #include <torrent/download/resource_manager.h>
 #include <torrent/net/http_stack.h>
 #include <torrent/net/network_config.h>
+#include <torrent/net/socket_address.h>
 #include <torrent/tracker/tracker.h>
 #include <torrent/utils/log.h>
 #include <torrent/utils/option_strings.h>
@@ -29,18 +30,18 @@
 
 torrent::Object
 apply_encryption(const torrent::Object::list_type& args) {
-  uint32_t options_mask = torrent::ConnectionManager::encryption_none;
+  uint32_t options_mask = torrent::net::NetworkConfig::encryption_none;
 
   for (const auto& arg : args) {
     uint32_t opt = torrent::option_find_string(torrent::OPTION_ENCRYPTION, arg.as_string().c_str());
 
-    if (opt == torrent::ConnectionManager::encryption_none)
-      options_mask = torrent::ConnectionManager::encryption_none;
+    if (opt == torrent::net::NetworkConfig::encryption_none)
+      options_mask = torrent::net::NetworkConfig::encryption_none;
     else
       options_mask |= opt;
   }
 
-  torrent::connection_manager()->set_encryption_options(options_mask);
+  torrent::config::network_config()->set_encryption_options(options_mask);
 
   return torrent::Object();
 }
@@ -52,7 +53,7 @@ apply_tos(const torrent::Object::string_type& arg) {
   if (!rpc::parse_whole_value_nothrow(arg.c_str(), &value, 16, 1))
     value = torrent::option_find_string(torrent::OPTION_IP_TOS, arg.c_str());
 
-  torrent::connection_manager()->set_priority(value);
+  torrent::config::network_config()->set_priority(value);
 
   return torrent::Object();
 }
@@ -86,8 +87,7 @@ apply_scgi(const std::string& arg, int type) {
   rpc::SCgi* scgi = new rpc::SCgi;
 
   rak::address_info* ai = NULL;
-  rak::socket_address sa;
-  rak::socket_address* saPtr;
+  torrent::sa_unique_ptr sa;
 
   try {
     int port, err;
@@ -98,17 +98,17 @@ apply_scgi(const std::string& arg, int type) {
     switch (type) {
     case 1:
       if (std::sscanf(arg.c_str(), ":%i%c", &port, &dummy) == 1) {
-        sa.sa_inet()->clear();
-        saPtr = &sa;
+        sa = torrent::sa_make_inet();
 
         lt_log_print(torrent::LOG_RPC_EVENTS, "SCGI socket is open to any address and is a security risk");
 
       } else if (std::sscanf(arg.c_str(), "%1023[^:]:%i%c", address, &port, &dummy) == 2 ||
                  std::sscanf(arg.c_str(), "[%64[^]]]:%i%c", address, &port, &dummy) == 2) { // [xx::xx]:port format
-        if ((err = rak::address_info::get_address_info(address,PF_UNSPEC, SOCK_STREAM, &ai)) != 0)
+
+        if ((err = rak::address_info::get_address_info(address, PF_UNSPEC, SOCK_STREAM, &ai)) != 0)
           throw torrent::input_error("Could not bind address: " + std::string(rak::address_info::strerror(err)) + ".");
 
-        saPtr = ai->address();
+        sa = torrent::sa_copy(ai->c_addrinfo()->ai_addr);
 
         lt_log_print(torrent::LOG_RPC_EVENTS, "SCGI socket is bound to an address and might be a security risk");
 
@@ -119,8 +119,8 @@ apply_scgi(const std::string& arg, int type) {
       if (port <= 0 || port >= (1 << 16))
         throw torrent::input_error("Invalid port number.");
 
-      saPtr->set_port(port);
-      scgi->open_port(saPtr, saPtr->length(), rpc::call_command_value("network.scgi.dont_route"));
+      torrent::sap_set_port(sa, port);
+      scgi->open_port(sa.get(), torrent::sap_length(sa), rpc::call_command_value("network.scgi.dont_route"));
 
       break;
 
@@ -208,10 +208,10 @@ initialize_command_network() {
   CMD2_ANY         ("network.http.ssl_verify_peer",       [http_stack](auto, auto) { return http_stack->ssl_verify_peer(); });
   CMD2_ANY_VALUE_V ("network.http.ssl_verify_peer.set",   [http_stack](auto, auto& value) { return http_stack->set_ssl_verify_peer(value); });
 
-  CMD2_ANY         ("network.send_buffer.size",        std::bind(&torrent::ConnectionManager::send_buffer_size, cm));
-  CMD2_ANY_VALUE_V ("network.send_buffer.size.set",    std::bind(&torrent::ConnectionManager::set_send_buffer_size, cm, std::placeholders::_2));
-  CMD2_ANY         ("network.receive_buffer.size",     std::bind(&torrent::ConnectionManager::receive_buffer_size, cm));
-  CMD2_ANY_VALUE_V ("network.receive_buffer.size.set", std::bind(&torrent::ConnectionManager::set_receive_buffer_size, cm, std::placeholders::_2));
+  CMD2_ANY         ("network.send_buffer.size",        std::bind(&torrent::net::NetworkConfig::send_buffer_size, network_config));
+  CMD2_ANY_VALUE_V ("network.send_buffer.size.set",    std::bind(&torrent::net::NetworkConfig::set_send_buffer_size, network_config, std::placeholders::_2));
+  CMD2_ANY         ("network.receive_buffer.size",     std::bind(&torrent::net::NetworkConfig::receive_buffer_size, network_config));
+  CMD2_ANY_VALUE_V ("network.receive_buffer.size.set", std::bind(&torrent::net::NetworkConfig::set_receive_buffer_size, network_config, std::placeholders::_2));
   CMD2_ANY_STRING  ("network.tos.set",                 std::bind(&apply_tos, std::placeholders::_2));
 
   CMD2_ANY         ("network.bind_address",          std::bind(&torrent::net::NetworkConfig::bind_address_str, network_config));
@@ -240,13 +240,12 @@ initialize_command_network() {
   CMD2_VAR_BOOL    ("network.rpc.use_xmlrpc",        true);
   CMD2_VAR_BOOL    ("network.rpc.use_jsonrpc",       true);
 
-  CMD2_ANY         ("network.block.ipv4",            std::bind(&torrent::ConnectionManager::is_block_ipv4, cm));
-  CMD2_ANY_VALUE_V ("network.block.ipv4.set",        std::bind(&torrent::ConnectionManager::set_block_ipv4, cm, std::placeholders::_2));
-  CMD2_ANY         ("network.block.ipv6",            std::bind(&torrent::ConnectionManager::is_block_ipv6, cm));
-  CMD2_ANY_VALUE_V ("network.block.ipv6.set",        std::bind(&torrent::ConnectionManager::set_block_ipv6, cm, std::placeholders::_2));
-  CMD2_ANY         ("network.block.ipv4in6",         std::bind(&torrent::ConnectionManager::is_block_ipv4in6, cm));
-  CMD2_ANY_VALUE_V ("network.block.ipv4in6.set",     std::bind(&torrent::ConnectionManager::set_block_ipv4in6, cm, std::placeholders::_2));
-
-  CMD2_ANY         ("network.prefer.ipv6",           std::bind(&torrent::ConnectionManager::is_prefer_ipv6, cm));
-  CMD2_ANY_VALUE_V ("network.prefer.ipv6.set",       std::bind(&torrent::ConnectionManager::set_prefer_ipv6, cm, std::placeholders::_2));
+  CMD2_ANY         ("network.block.ipv4",            std::bind(&torrent::net::NetworkConfig::is_block_ipv4, network_config));
+  CMD2_ANY_VALUE_V ("network.block.ipv4.set",        std::bind(&torrent::net::NetworkConfig::set_block_ipv4, network_config, std::placeholders::_2));
+  CMD2_ANY         ("network.block.ipv6",            std::bind(&torrent::net::NetworkConfig::is_block_ipv6, network_config));
+  CMD2_ANY_VALUE_V ("network.block.ipv6.set",        std::bind(&torrent::net::NetworkConfig::set_block_ipv6, network_config, std::placeholders::_2));
+  CMD2_ANY         ("network.block.ipv4in6",         std::bind(&torrent::net::NetworkConfig::is_block_ipv4in6, network_config));
+  CMD2_ANY_VALUE_V ("network.block.ipv4in6.set",     std::bind(&torrent::net::NetworkConfig::set_block_ipv4in6, network_config, std::placeholders::_2));
+  CMD2_ANY         ("network.prefer.ipv6",           std::bind(&torrent::net::NetworkConfig::is_prefer_ipv6, network_config));
+  CMD2_ANY_VALUE_V ("network.prefer.ipv6.set",       std::bind(&torrent::net::NetworkConfig::set_prefer_ipv6, network_config, std::placeholders::_2));
 }
