@@ -77,11 +77,11 @@ jobs:
         with:
           repository: 'beadon/libtorrent'
           tag: ${{ github.ref_name }}
-          fileName: libtorrent_${GITHUB_REF_NAME#v}_amd64.deb
+          fileName: libtorrent_${{ github.ref }}_amd64.deb
 
       - name: Install libtorrent in build environment
         run: |
-          dpkg -i libtorrent_${GITHUB_REF_NAME#v}_amd64.deb
+          dpkg -i libtorrent_${{ github.ref }}_amd64.deb
 
     ## Fetch the current repo
       - uses: actions/checkout@v5
