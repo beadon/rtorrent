@@ -219,7 +219,7 @@ xmlrpc_to_object(xmlrpc_env* env, xmlrpc_value* value, int call_type, rpc::targe
       if (env->fault_occurred)
         throw xmlrpc_error_c(env);
 
-      if (target->first == XmlRpc::call_download &&
+      if (target != nullptr && target->first == XmlRpc::call_download &&
           (call_type == XmlRpc::call_file || call_type == XmlRpc::call_tracker)) {
         // If we have a download target and the call type requires
         // another contained type, then we try to use the next
@@ -375,9 +375,7 @@ xmlrpc_call_command(xmlrpc_env* env, xmlrpc_value* args, void* voidServerInfo) {
     torrent::Object object;
     rpc::target_type target = rpc::make_target();
 
-    if (itr->second.m_flags & CommandMap::flag_no_target)
-      xmlrpc_to_object(env, args, XmlRpc::call_generic, &target, &deleter).swap(object);
-    else if (itr->second.m_flags & CommandMap::flag_file_target)
+    if (itr->second.m_flags & CommandMap::flag_file_target)
       xmlrpc_to_object(env, args, XmlRpc::call_file, &target, &deleter).swap(object);
     else if (itr->second.m_flags & CommandMap::flag_tracker_target)
       xmlrpc_to_object(env, args, XmlRpc::call_tracker, &target, &deleter).swap(object);

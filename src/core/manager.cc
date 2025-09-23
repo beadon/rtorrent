@@ -7,7 +7,6 @@
 #include <unistd.h>
 #include <sys/select.h>
 #include <rak/address_info.h>
-#include <rak/error_number.h>
 #include <rak/regex.h>
 #include <rak/path.h>
 #include <rak/string_manip.h>
@@ -19,6 +18,8 @@
 #include <torrent/object_stream.h>
 #include <torrent/throttle.h>
 #include <torrent/net/http_stack.h>
+#include <torrent/net/network_config.h>
+#include <torrent/net/socket_address.h>
 #include <torrent/utils/log.h>
 
 #include "rpc/parse_commands.h"
@@ -97,7 +98,10 @@ Manager::set_address_throttle(uint32_t begin, uint32_t end, torrent::ThrottlePai
 
 torrent::ThrottlePair
 Manager::get_address_throttle(const sockaddr* addr) {
-  return m_addressThrottles.get(rak::socket_address::cast_from(addr)->sa_inet()->address_h(), torrent::ThrottlePair(nullptr, nullptr));
+  if (addr->sa_family != AF_INET)
+    return torrent::ThrottlePair(nullptr, nullptr);
+
+  return m_addressThrottles.get(ntohl(reinterpret_cast<const sockaddr_in*>(addr)->sin_addr.s_addr), torrent::ThrottlePair(nullptr, nullptr));
 }
 
 int64_t
@@ -180,12 +184,7 @@ Manager::listen_open() {
       return;
   }
 
-  throw torrent::input_error("Could not open/bind port for listening: " + std::string(rak::error_number::current().c_str()));
-}
-
-std::string
-Manager::bind_address() const {
-  return rak::socket_address::cast_from(torrent::connection_manager()->bind_address())->address_str();
+  throw torrent::input_error("Could not open/bind port for listening: " + std::string(std::strerror(errno)));
 }
 
 void
@@ -199,19 +198,15 @@ Manager::set_bind_address(const std::string& addr) {
 
   try {
 
-    if (torrent::connection_manager()->listen_port() != 0) {
+    if (torrent::connection_manager()->is_listen_open()) {
       torrent::connection_manager()->listen_close();
-      torrent::connection_manager()->set_bind_address(ai->address()->c_sockaddr());
+      torrent::config::network_config()->set_bind_address(ai->c_addrinfo()->ai_addr);
+
       listen_open();
 
     } else {
-      torrent::connection_manager()->set_bind_address(ai->address()->c_sockaddr());
+      torrent::config::network_config()->set_bind_address(ai->c_addrinfo()->ai_addr);
     }
-
-    if (ai->address()->is_address_any())
-      torrent::net_thread::http_stack()->set_bind_address(std::string());
-    else
-      torrent::net_thread::http_stack()->set_bind_address(ai->address()->address_str());
 
     rak::address_info::free_address_info(ai);
 
@@ -219,11 +214,6 @@ Manager::set_bind_address(const std::string& addr) {
     rak::address_info::free_address_info(ai);
     throw e;
   }
-}
-
-std::string
-Manager::local_address() const {
-  return rak::socket_address::cast_from(torrent::connection_manager()->local_address())->address_str();
 }
 
 void
@@ -236,19 +226,14 @@ Manager::set_local_address(const std::string& addr) {
     throw torrent::input_error("Could not set local address: " + std::string(rak::address_info::strerror(err)) + ".");
 
   try {
+    torrent::config::network_config()->set_local_address(ai->c_addrinfo()->ai_addr);
 
-    torrent::connection_manager()->set_local_address(ai->address()->c_sockaddr());
     rak::address_info::free_address_info(ai);
 
   } catch (torrent::input_error& e) {
     rak::address_info::free_address_info(ai);
     throw e;
   }
-}
-
-std::string
-Manager::proxy_address() const {
-  return rak::socket_address::cast_from(torrent::connection_manager()->proxy_address())->address_str();
 }
 
 void
@@ -271,8 +256,10 @@ Manager::set_proxy_address(const std::string& addr) {
 
   try {
 
-    ai->address()->set_port(port);
-    torrent::connection_manager()->set_proxy_address(ai->address()->c_sockaddr());
+    auto sa = torrent::sa_copy(ai->c_addrinfo()->ai_addr);
+    torrent::sap_set_port(sa, port);
+
+    torrent::config::network_config()->set_proxy_address(sa.get());
 
     rak::address_info::free_address_info(ai);
 

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // libTorrent - BitTorrent library
 // Copyright (C) 2005-2011, Jari Sundell
 //
@@ -32,14 +33,14 @@
 // Contact:  Jari Sundell <sundell.software@gmail.com>
 
 
+=======
+>>>>>>> 07bd9d7a1bfc19f17fd7027a5ac92eb999bf853c
 #ifndef RTORRENT_UTILS_SOCKET_FD_H
 #define RTORRENT_UTILS_SOCKET_FD_H
 
+#include <cinttypes>
 #include <unistd.h>
-
-namespace rak {
-  class socket_address;
-}
+#include <sys/socket.h>
 
 namespace utils {
 
@@ -51,7 +52,7 @@ public:
   explicit SocketFd(int fd) : m_fd(fd) {}
 
   bool                is_valid() const                        { return m_fd >= 0; }
-  
+
   int                 get_fd() const                          { return m_fd; }
   void                set_fd(int fd)                          { m_fd = fd; }
 
@@ -75,16 +76,9 @@ public:
 
   void                clear()                                 { m_fd = -1; }
 
-  bool                bind(const rak::socket_address& sa);
-  bool                bind(const rak::socket_address& sa, unsigned int length);
-  bool                connect(const rak::socket_address& sa);
-  bool                getsockname(rak::socket_address* sa);
+  bool                bind_sa(const sockaddr* sa, unsigned int length);
 
   bool                listen(int size);
-  SocketFd            accept(rak::socket_address* sa);
-
-//   unsigned int        get_read_queue_size() const;
-//   unsigned int        get_write_queue_size() const;
 
 private:
   inline void         check_valid() const;

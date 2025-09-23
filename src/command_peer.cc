@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // rTorrent - BitTorrent client
 // Copyright (C) 2005-2011, Jari Sundell
 //
@@ -32,14 +33,14 @@
 // Contact:  Jari Sundell <sundell.software@gmail.com>
 
 
+=======
+>>>>>>> 07bd9d7a1bfc19f17fd7027a5ac92eb999bf853c
 #include "config.h"
 
-#include <rak/error_number.h>
-#include <rak/path.h>
-#include <rak/socket_address.h>
 #include <rak/string_manip.h>
 #include <torrent/bitfield.h>
 #include <torrent/rate.h>
+#include <torrent/net/socket_address.h>
 #include <torrent/peer/connection_list.h>
 #include <torrent/peer/peer.h>
 #include <torrent/peer/peer_info.h>
@@ -67,17 +68,18 @@ retrieve_p_id_html(torrent::Peer* peer) {
 
 torrent::Object
 retrieve_p_address(torrent::Peer* peer) {
-  const rak::socket_address *addr = rak::socket_address::cast_from(peer->peer_info()->socket_address());
+  auto sa = peer->peer_info()->socket_address();
+  auto addr_str = torrent::sa_addr_str(sa);
 
-  if (addr->family() == rak::socket_address::af_inet6)
-    return "[" + addr->address_str() + "]";
-  else
-    return addr->address_str();
+  if (sa->sa_family == AF_INET6)
+    return "[" + addr_str + "]";
+
+  return addr_str;
 }
 
 torrent::Object
 retrieve_p_port(torrent::Peer* peer) {
-  return rak::socket_address::cast_from(peer->peer_info()->socket_address())->port();
+  return torrent::sa_port(peer->peer_info()->socket_address());
 }
 
 torrent::Object

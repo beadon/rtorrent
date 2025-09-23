@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // rTorrent - BitTorrent client
 // Copyright (C) 2005-2011, Jari Sundell
 //
@@ -32,16 +33,19 @@
 // Contact:  Jari Sundell <sundell.software@gmail.com>
 
 
+=======
+>>>>>>> 07bd9d7a1bfc19f17fd7027a5ac92eb999bf853c
 #include "config.h"
 
 #include <cstdio>
-#include <rak/address_info.h>
 #include <torrent/throttle.h>
 #include <torrent/rate.h>
 #include <torrent/download/resource_manager.h>
+#include <torrent/net/socket_address.h>
 
 #include "core/manager.h"
 #include "ui/root.h"
+#include "rak/address_info.h"
 #include "rpc/parse.h"
 #include "rpc/parse_commands.h"
 
@@ -57,13 +61,16 @@ parse_address_range(const torrent::Object::list_type& args, torrent::Object::lis
   rak::address_info* ai;
 
   ret = std::sscanf(itr->as_string().c_str(), "%1023[^/]/%d%c", host, &prefixWidth, &dummy);
+
   if (ret < 1 || rak::address_info::get_address_info(host, PF_INET, SOCK_STREAM, &ai) != 0)
     throw torrent::input_error("Could not resolve host.");
 
   uint32_t begin, end;
-  rak::socket_address sa;
-  sa.copy(*ai->address(), ai->length());
-  begin = end = sa.sa_inet()->address_h();
+  auto sa = torrent::sa_copy(ai->c_addrinfo()->ai_addr);
+  auto sa_addr = htonl(reinterpret_cast<sockaddr_in*>(sa.get())->sin_addr.s_addr);
+
+  begin = end = sa_addr;
+
   rak::address_info::free_address_info(ai);
 
   if (ret == 2) {
@@ -71,18 +78,21 @@ parse_address_range(const torrent::Object::list_type& args, torrent::Object::lis
       throw torrent::input_error("Cannot specify both network and range end.");
 
     uint32_t netmask = std::numeric_limits<uint32_t>::max() << (32 - prefixWidth);
-    if (prefixWidth >= 32 || sa.sa_inet()->address_h() & ~netmask)
+
+    if (prefixWidth >= 32 || sa_addr & ~netmask)
       throw torrent::input_error("Invalid address/prefix.");
 
-    end = sa.sa_inet()->address_h() | ~netmask;
+    end = sa_addr | ~netmask;
 
   } else if (++itr != args.end()) {
     if (rak::address_info::get_address_info(itr->as_string().c_str(), PF_INET, SOCK_STREAM, &ai) != 0)
       throw torrent::input_error("Could not resolve host.");
 
-    sa.copy(*ai->address(), ai->length());
+    sa = torrent::sa_copy(ai->c_addrinfo()->ai_addr);
+    sa_addr = htonl(reinterpret_cast<sockaddr_in*>(sa.get())->sin_addr.s_addr);
+
     rak::address_info::free_address_info(ai);
-    end = sa.sa_inet()->address_h();
+    end = sa_addr;
   }
 
   // convert to [begin, end) making sure the end doesn't overflow
@@ -194,10 +204,10 @@ initialize_command_throttle() {
   CMD2_VAR_VALUE   ("throttle.max_downloads.div._val",    1);
   CMD2_VAR_VALUE   ("throttle.max_downloads.global._val", 0);
 
-  CMD2_REDIRECT_GENERIC("throttle.max_uploads.div",      "throttle.max_uploads.div._val");
-  CMD2_REDIRECT_GENERIC("throttle.max_uploads.global",   "throttle.max_uploads.global._val");
-  CMD2_REDIRECT_GENERIC("throttle.max_downloads.div",    "throttle.max_downloads.div._val");
-  CMD2_REDIRECT_GENERIC("throttle.max_downloads.global", "throttle.max_downloads.global._val");
+  CMD2_REDIRECT    ("throttle.max_uploads.div",      "throttle.max_uploads.div._val");
+  CMD2_REDIRECT    ("throttle.max_uploads.global",   "throttle.max_uploads.global._val");
+  CMD2_REDIRECT    ("throttle.max_downloads.div",    "throttle.max_downloads.div._val");
+  CMD2_REDIRECT    ("throttle.max_downloads.global", "throttle.max_downloads.global._val");
 
   CMD2_ANY_VALUE   ("throttle.max_uploads.div.set",      std::bind(&throttle_update, "throttle.max_uploads.div._val.set", std::placeholders::_2));
   CMD2_ANY_VALUE   ("throttle.max_uploads.global.set",   std::bind(&throttle_update, "throttle.max_uploads.global._val.set", std::placeholders::_2));

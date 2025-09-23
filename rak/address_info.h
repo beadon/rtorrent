@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // rak - Rakshasa's toolbox
 // Copyright (C) 2005-2007, Jari Sundell
 //
@@ -31,6 +32,8 @@
 //
 // Contact:  Jari Sundell 
 
+=======
+>>>>>>> 07bd9d7a1bfc19f17fd7027a5ac92eb999bf853c
 // Wrapper for addrinfo with focus on zero-copy conversion to and from
 // the c-type and wrapper.
 //
@@ -41,7 +44,7 @@
 #define RAK_ADDRESS_INFO_H
 
 #include <netdb.h>
-#include <rak/socket_address.h>
+#include <cstring>
 
 namespace rak {
 
@@ -57,13 +60,11 @@ public:
 
   int                 socket_type() const           { return m_addrinfo.ai_socktype; }
   void                set_socket_type(int t)        { m_addrinfo.ai_socktype = t; }
-  
+
   int                 protocol() const              { return m_addrinfo.ai_protocol; }
   void                set_protocol(int p)           { m_addrinfo.ai_protocol = p; }
-  
-  size_t              length() const                { return m_addrinfo.ai_addrlen; }
 
-  socket_address*     address()                     { return reinterpret_cast<socket_address*>(m_addrinfo.ai_addr); }
+  size_t              length() const                { return m_addrinfo.ai_addrlen; }
 
   addrinfo*           c_addrinfo()                  { return &m_addrinfo; }
   const addrinfo*     c_addrinfo() const            { return &m_addrinfo; }
@@ -86,7 +87,7 @@ address_info::get_address_info(const char* node, int pfamily, int stype, address
   hints.clear();
   hints.set_family(pfamily);
   hints.set_socket_type(stype);
-  
+
   return ::getaddrinfo(node, NULL, hints.c_addrinfo(), reinterpret_cast<addrinfo**>(ai));
 }
 
