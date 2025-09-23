@@ -58,19 +58,29 @@ jobs:
         
       # Only build if the deb package is not available from the release version
       ##  Alternate build concept:  ./configure --prefix=$(pwd)/$PREFIX
-      - name: Build libtorrent
-        run: |
-          autoreconf -ivf
-          ./configure
-          export CORES=`nproc --all`
-          export BUILD_THREADS=`expr $CORES - 1`
-          echo "Building with $BUILD_THREADS threads in make"
-          make -j$BUILD_THREADS
+#      - name: Build libtorrent
+#        run: |
+#          autoreconf -ivf
+#          ./configure
+#          export CORES=`nproc --all`
+#          export BUILD_THREADS=`expr $CORES - 1`
+#          echo "Building with $BUILD_THREADS threads in make"
+#          make -j$BUILD_THREADS
 
-      - name: Finish libtorrent install to package build directory + system
+#      - name: Finish libtorrent install to package build directory + system
+#        run: |
+#          make install DESTDIR=$PREFIX
+#          sudo make install
+
+# Fetch libtorrent
+      - name: Download a single artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: libtorrent_${{ github.ref_name }}_amd64.deb
+
+      - name: Install libtorrent in build environment
         run: |
-          make install DESTDIR=$PREFIX
-          sudo make install
+          dpkg -i libtorrent_${{ github.ref_name }}_amd64.deb
 
     ## Fetch the current repo
       - uses: actions/checkout@v5
