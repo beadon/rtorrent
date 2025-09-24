@@ -79,7 +79,7 @@ jobs:
 
       - name: Install libtorrent in build environment
         run: |
-          dpkg -i libtorrent_${{ env.PACKAGE_VERSION }}_amd64.deb
+          sudo dpkg -i libtorrent_${{ env.PACKAGE_VERSION }}_amd64.deb
 
     ## Fetch the current repo
       - uses: actions/checkout@v5
