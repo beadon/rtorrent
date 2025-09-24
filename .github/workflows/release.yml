@@ -10,6 +10,7 @@ env:
   MAINTAINER: 'beadon'
   DESC: 'A ncurses-based command line torrent client for high performance.'
   VERSION: ${{ github.ref_name }}
+  PACKAGE_VERSION: ''    # set shortly ...
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   BASE_PREFIX: ".debpkg/"
   CXXFLAGS: '-O3'
@@ -19,10 +20,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Set prefix
+      - name: Set prefix and update version strings
         run: |
             export RUNNER_TEMP="${{ runner.temp }}"
             echo "PREFIX=$RUNNER_TEMP/$BASE_PREFIX" >> $GITHUB_ENV
+            PACKAGE_VERSION=${GITHUB_REF_NAME#v}
+            echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
 
       - name: Update to latest packages
         run: |
@@ -40,25 +43,20 @@ jobs:
          sudo apt-get install --no-install-recommends -y \
            libcurl4-openssl-dev
 
-# THIS IS THE DUMB WAY
-#      - name: Fetch libtorrent
-#        run: |
-#         git clone --branch $VERSION https://github.com/beadon/libtorrent
-
-    ## Fetch the libtorrent repo
-      - uses: actions/checkout@v5
-        with:
-          repository : beadon/libtorrent
-          ref: ${{ github.ref_name }}
-          fetch-depth: 1
-
       - name: Create package build directory
         run: |
          mkdir -v -p $PREFIX
         
       # Only build if the deb package is not available from the release version
       ##  Alternate build concept:  ./configure --prefix=$(pwd)/$PREFIX
-#      - name: Build libtorrent
+##     Fetch the libtorrent repo
+#      - uses: actions/checkout@v5
+#        with:
+#          repository : beadon/libtorrent
+#          ref: ${{ github.ref_name }}
+#          fetch-depth: 1
+#
+##     - name: Build libtorrent
 #        run: |
 #          autoreconf -ivf
 #          ./configure
@@ -77,11 +75,11 @@ jobs:
         with:
           repository: 'beadon/libtorrent'
           tag: ${{ github.ref_name }}
-          fileName: libtorrent_${{ github.ref }}_amd64.deb
+          fileName: libtorrent_${{ env.PACKAGE_VERSION }}_amd64.deb
 
       - name: Install libtorrent in build environment
         run: |
-          dpkg -i libtorrent_${{ github.ref }}_amd64.deb
+          dpkg -i libtorrent_${{ env.PACKAGE_VERSION }}_amd64.deb
 
     ## Fetch the current repo
       - uses: actions/checkout@v5
@@ -104,7 +102,7 @@ jobs:
         run: |
           make install DESTDIR=$PREFIX
 
-      - name: Move things to where the next tool can access
+      - name: Move things to where the packaging tool can access
         run: |
           mv -v $PREFIX $BASE_PREFIX
 
