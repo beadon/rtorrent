@@ -94,7 +94,7 @@ jobs:
       - name: Configure Project
         run: |
          autoreconf -ivf
-         ./configure
+         ./configure --enable-aligned --with-posix-fallocate --with-lua
          export CORES=`nproc --all`
          export BUILD_THREADS=`expr $CORES - 1`
          echo "Building with $BUILD_THREADS threads in make"
