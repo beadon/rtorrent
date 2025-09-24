@@ -41,7 +41,7 @@ jobs:
          path-exclude /usr/share/info/*
          EOF
          sudo apt-get install --no-install-recommends -y \
-           libcurl4-openssl-dev
+           libcurl4-openssl-dev lua5.4 liblua5.4-dev
 
       - name: Create package build directory
         run: |
