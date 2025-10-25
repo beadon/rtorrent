@@ -418,6 +418,11 @@ main(int argc, char** argv) {
 
     CMD2_REDIRECT("torrent_list_layout", "ui.torrent_list.layout.set");
 
+    // Deprecate:
+
+    CMD2_REDIRECT("network.http.max_open",     "network.http.max_total_connections");
+    CMD2_REDIRECT("network.http.max_open.set", "network.http.max_total_connections.set");
+
     // Deprecated commands. Don't use these anymore.
     //
     // It has been so long that we now re-create these commands with the new (old by now) command
@@ -497,6 +502,8 @@ main(int argc, char** argv) {
 
     lt_log_print_dump(torrent::LOG_CRITICAL, e.backtrace().c_str(), e.backtrace().size(),
                       "Caught internal_error: '%s'.", e.what());
+
+    torrent::log_cleanup();
     return -1;
 
   } catch (std::exception& e) {
@@ -505,6 +512,8 @@ main(int argc, char** argv) {
     std::cout << "rtorrent: caught" << typeid(e).name() << " : " << e.what() << std::endl;
 
     lt_log_print(torrent::LOG_CRITICAL, "Caught exception: '%s'.", e.what());
+
+    torrent::log_cleanup();
     return -1;
   }
 

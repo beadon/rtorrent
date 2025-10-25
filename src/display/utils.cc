@@ -377,7 +377,7 @@ print_status_info(char* first, char* last) {
 
   first = print_buffer(first, last, " [Port: %i]", (unsigned int)torrent::config::network_config()->listen_port());
 
-  auto local_address = torrent::config::network_config()->local_address();
+  auto local_address = torrent::config::network_config()->local_address_best_match();
 
   if (!torrent::sa_is_any(local_address.get())) {
     first = print_buffer(first, last, " [Local ");
@@ -388,7 +388,7 @@ print_status_info(char* first, char* last) {
   if (first > last)
     throw torrent::internal_error("print_status_info(...) wrote past end of the buffer.");
 
-  auto bind_address = torrent::config::network_config()->bind_address();
+  auto bind_address = torrent::config::network_config()->bind_address_best_match();
 
   if (!torrent::sa_is_any(bind_address.get())) {
     first = print_buffer(first, last, " [Bind ");
@@ -410,8 +410,8 @@ print_status_extra(char* first, char* last) {
                        torrent::resource_manager()->max_download_unchoked());
 
   first = print_buffer(first, last, " [H %u/%u]",
-                       torrent::net_thread::http_stack()->active(),
-                       torrent::net_thread::http_stack()->max_active());
+                       torrent::net_thread::http_stack()->size(),
+                       torrent::net_thread::http_stack()->max_total_connections());
 
   first = print_buffer(first, last, " [S %i/%i/%i]",
                        torrent::total_handshakes(),
